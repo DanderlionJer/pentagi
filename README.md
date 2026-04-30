@@ -633,7 +633,9 @@ mkdir pentagi && cd pentagi
 curl -o .env https://raw.githubusercontent.com/vxcontrol/pentagi/master/.env.example
 ```
 
-3. Touch examples files (`example.custom.provider.yml`, `example.ollama.provider.yml`) or download it:
+3. Provider YAML: edit files under `host-provider-conf/` (`custom.provider.yml`, `ollama.provider.yml`). `docker-compose.yml` bind-mounts that **directory** to `/mnt/host-provider-conf` (avoids flaky single-file binds on Docker Desktop for Windows). Defaults: `LLM_SERVER_CONFIG_PATH=/mnt/host-provider-conf/custom.provider.yml`, `OLLAMA_SERVER_CONFIG_PATH=/mnt/host-provider-conf/ollama.provider.yml`. Override the host folder with `PENTAGI_HOST_PROVIDER_DIR` if needed. Run `scripts/ensure-pentagi-compose-host.sh` or `.ps1` to seed the folder from `examples/configs/`.
+
+Optional — refresh samples from upstream:
 
 ```bash
 curl -o example.custom.provider.yml https://raw.githubusercontent.com/vxcontrol/pentagi/master/examples/configs/custom-openai.provider.yml

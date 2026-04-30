@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"pentagi/pkg/config"
 	"pentagi/pkg/database"
@@ -412,15 +413,35 @@ func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 	}
 
 	containerName := PrimaryTerminalName(fte.flowID)
+	containerCfg := &container.Config{
+		Image:      fte.image,
+		Entrypoint: []string{"tail", "-f", "/dev/null"},
+	}
+	// Worker shells (apk, wget, nmap, etc.) need outbound HTTP(S) proxy on restricted networks.
+	workerProxy := strings.TrimSpace(fte.cfg.WorkerHTTPProxy)
+	if workerProxy == "" {
+		workerProxy = strings.TrimSpace(fte.cfg.ProxyURL)
+	}
+	if workerProxy != "" {
+		containerCfg.Env = append(containerCfg.Env,
+			"PROXY_URL="+workerProxy,
+			"HTTP_PROXY="+workerProxy,
+			"HTTPS_PROXY="+workerProxy,
+		)
+		if noProxy := strings.TrimSpace(fte.cfg.NoProxy); noProxy != "" {
+			containerCfg.Env = append(containerCfg.Env,
+				"NO_PROXY="+noProxy,
+				"no_proxy="+noProxy,
+			)
+		}
+	}
+
 	cnt, err := fte.docker.RunContainer(
 		ctx,
 		containerName,
 		database.ContainerTypePrimary,
 		fte.flowID,
-		&container.Config{
-			Image:      fte.image,
-			Entrypoint: []string{"tail", "-f", "/dev/null"},
-		},
+		containerCfg,
 		&container.HostConfig{
 			CapAdd: capAdd,
 		},

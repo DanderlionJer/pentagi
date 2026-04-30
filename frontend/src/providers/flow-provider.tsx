@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+
+import { getApolloErrorMessage, isFlowMissingError } from '@/lib/apollo-error-message';
 
 import type { FlowFormValues } from '@/features/flows/flow-form';
 import type { AssistantFragmentFragment, AssistantLogFragmentFragment, FlowQuery } from '@/graphql/types';
@@ -63,6 +65,7 @@ interface FlowProviderProps {
 
 export const FlowProvider = ({ children }: FlowProviderProps) => {
     const { flowId } = useParams();
+    const navigate = useNavigate();
 
     const [selectedAssistantIds, setSelectedAssistantIds] = useState<Record<string, null | string>>({});
 
@@ -177,6 +180,18 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
 
     const flowStatus = useMemo(() => flowData?.flow?.status, [flowData?.flow?.status]);
 
+    const notifyFlowMutationError = useCallback(
+        (error: unknown, title: string, fallback: string) => {
+            const msg = getApolloErrorMessage(error, fallback);
+            toast.error(`${title}: ${msg}`);
+            if (isFlowMissingError(msg)) {
+                navigate('/flows', { replace: true });
+            }
+            Log.error(`${title}:`, error);
+        },
+        [navigate],
+    );
+
     // Show toast notification when flow loading error occurs
     useEffect(() => {
         if (flowError) {
@@ -193,6 +208,16 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
             if (!flowId || flowStatus === StatusType.Finished) {
                 return;
             }
+            if (isLoading) {
+                return;
+            }
+            if (!flowData?.flow) {
+                toast.error('Flow not available', {
+                    description: 'Open it again from the flows list.',
+                });
+                navigate('/flows', { replace: true });
+                return;
+            }
 
             const { message: input, providerName } = values;
 
@@ -205,15 +230,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                     },
                 });
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while submitting message';
-                toast.error('Failed to submit message', {
-                    description,
-                });
-                Log.error('Error submitting message:', error);
+                notifyFlowMutationError(error, 'Failed to submit message', 'An error occurred while submitting message');
             }
         },
-        [flowId, flowStatus, putUserInput],
+        [flowId, flowStatus, flowData?.flow, isLoading, navigate, notifyFlowMutationError, putUserInput],
     );
 
     const stopAutomation = useCallback(async () => {
@@ -228,13 +248,9 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                 },
             });
         } catch (error) {
-            const description = error instanceof Error ? error.message : 'An error occurred while stopping flow';
-            toast.error('Failed to stop flow', {
-                description,
-            });
-            Log.error('Error stopping flow:', error);
+            notifyFlowMutationError(error, 'Failed to stop flow', 'An error occurred while stopping flow');
         }
-    }, [flowId, stopFlowMutation]);
+    }, [flowId, notifyFlowMutationError, stopFlowMutation]);
 
     const createAssistant = useCallback(
         async (values: FlowFormValues) => {
@@ -265,15 +281,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                     }
                 }
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while creating assistant';
-                toast.error('Failed to create assistant', {
-                    description,
-                });
-                Log.error('Error creating assistant:', error);
+                notifyFlowMutationError(error, 'Failed to create assistant', 'An error occurred while creating assistant');
             }
         },
-        [flowId, createAssistantMutation, selectAssistant],
+        [flowId, createAssistantMutation, notifyFlowMutationError, selectAssistant],
     );
 
     const submitAssistantMessage = useCallback(
@@ -297,15 +308,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                 });
                 // Cache will be automatically updated via subscriptions
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while calling assistant';
-                toast.error('Failed to call assistant', {
-                    description,
-                });
-                Log.error('Error calling assistant:', error);
+                notifyFlowMutationError(error, 'Failed to call assistant', 'An error occurred while calling assistant');
             }
         },
-        [flowId, submitAssistantMessageMutation],
+        [flowId, notifyFlowMutationError, submitAssistantMessageMutation],
     );
 
     const stopAssistant = useCallback(
@@ -323,15 +329,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                 });
                 // Cache will be automatically updated via mutation policy and subscriptions
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while stopping assistant';
-                toast.error('Failed to stop assistant', {
-                    description,
-                });
-                Log.error('Error stopping assistant:', error);
+                notifyFlowMutationError(error, 'Failed to stop assistant', 'An error occurred while stopping assistant');
             }
         },
-        [flowId, stopAssistantMutation],
+        [flowId, notifyFlowMutationError, stopAssistantMutation],
     );
 
     const deleteAssistant = useCallback(
@@ -357,15 +358,10 @@ export const FlowProvider = ({ children }: FlowProviderProps) => {
                     selectAssistant(null);
                 }
             } catch (error) {
-                const description =
-                    error instanceof Error ? error.message : 'An error occurred while deleting assistant';
-                toast.error('Failed to delete assistant', {
-                    description,
-                });
-                Log.error('Error deleting assistant:', error);
+                notifyFlowMutationError(error, 'Failed to delete assistant', 'An error occurred while deleting assistant');
             }
         },
-        [flowId, selectedAssistantId, deleteAssistantMutation, selectAssistant],
+        [flowId, selectedAssistantId, deleteAssistantMutation, notifyFlowMutationError, selectAssistant],
     );
 
     const value = useMemo(

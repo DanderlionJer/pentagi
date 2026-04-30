@@ -1,5 +1,5 @@
-# syntax=docker/dockerfile:1.4
-
+# BuildKit is required for RUN --mount caches. No "# syntax=" line avoids an extra pull of
+# docker/dockerfile:* when the daemon cannot reach Docker Hub (use registry mirrors on the daemon).
 # ========================================
 # Stage 1: Frontend Application Build
 # ========================================

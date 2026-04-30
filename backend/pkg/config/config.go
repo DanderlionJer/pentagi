@@ -188,6 +188,11 @@ type Config struct {
 
 	// === Network Proxy Settings ===
 	ProxyURL string `env:"PROXY_URL"`
+	// WorkerHTTPProxy is passed only into flow worker containers (shell tools). Prefer this over
+	// PROXY_URL so the main process can reach host.docker.internal LLM forwards without a global HTTP proxy.
+	WorkerHTTPProxy string `env:"PENTAGI_WORKER_HTTP_PROXY"`
+	// NoProxy is forwarded to worker containers together with WorkerHTTPProxy (bypass list for internal hosts).
+	NoProxy string `env:"NO_PROXY"`
 
 	// SSL Trusted CA Certificate Path (for external communication with LLM backends)
 	ExternalSSLCAPath   string `env:"EXTERNAL_SSL_CA_PATH" envDefault:""`
@@ -320,6 +325,7 @@ func (c *Config) GetSecretPatterns() []patterns.Pattern {
 		{c.TavilyAPIKey, "Tavily Key"},
 		{c.PerplexityAPIKey, "Perplexity Key"},
 		{c.ProxyURL, "Proxy URL"},
+		{c.WorkerHTTPProxy, "Worker HTTP Proxy"},
 		{c.LangfusePublicKey, "Langfuse Public Key"},
 		{c.LangfuseSecretKey, "Langfuse Secret Key"},
 	}

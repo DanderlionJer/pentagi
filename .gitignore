@@ -18,6 +18,13 @@ node_modules
 .cursorignore
 .cursor/
 .agents/
+
+# Local TLS / provider secrets (never commit)
+docker-ssl/
+host-provider-conf/
+examples/smtp-test-env/
+
+scripts/__pycache__/
 skills-lock.json
 
 build/*

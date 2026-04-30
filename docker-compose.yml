@@ -1,3 +1,6 @@
+# Project name must match existing containers/volumes (e.g. pgvector, pentagi-postgres-data).
+name: pentagi-main
+
 volumes:
   pentagi-data:
     driver: local
@@ -71,13 +74,13 @@ services:
       - LLM_SERVER_KEY=${LLM_SERVER_KEY:-}
       - LLM_SERVER_MODEL=${LLM_SERVER_MODEL:-}
       - LLM_SERVER_PROVIDER=${LLM_SERVER_PROVIDER:-}
-      - LLM_SERVER_CONFIG_PATH=${LLM_SERVER_CONFIG_PATH:-}
+      - LLM_SERVER_CONFIG_PATH=${LLM_SERVER_CONFIG_PATH:-/mnt/host-provider-conf/custom.provider.yml}
       - LLM_SERVER_LEGACY_REASONING=${LLM_SERVER_LEGACY_REASONING:-}
       - LLM_SERVER_PRESERVE_REASONING=${LLM_SERVER_PRESERVE_REASONING:-}
       - OLLAMA_SERVER_URL=${OLLAMA_SERVER_URL:-}
       - OLLAMA_SERVER_API_KEY=${OLLAMA_SERVER_API_KEY:-}
       - OLLAMA_SERVER_MODEL=${OLLAMA_SERVER_MODEL:-}
-      - OLLAMA_SERVER_CONFIG_PATH=${OLLAMA_SERVER_CONFIG_PATH:-}
+      - OLLAMA_SERVER_CONFIG_PATH=${OLLAMA_SERVER_CONFIG_PATH:-/mnt/host-provider-conf/ollama.provider.yml}
       - OLLAMA_SERVER_PULL_MODELS_TIMEOUT=${OLLAMA_SERVER_PULL_MODELS_TIMEOUT:-}
       - OLLAMA_SERVER_PULL_MODELS_ENABLED=${OLLAMA_SERVER_PULL_MODELS_ENABLED:-}
       - OLLAMA_SERVER_LOAD_MODELS_ENABLED=${OLLAMA_SERVER_LOAD_MODELS_ENABLED:-}
@@ -109,11 +112,15 @@ services:
       - MAX_LIMITED_AGENT_TOOL_CALLS=${MAX_LIMITED_AGENT_TOOL_CALLS:-}
       - AGENT_PLANNING_STEP_ENABLED=${AGENT_PLANNING_STEP_ENABLED:-}
       - PROXY_URL=${PROXY_URL:-}
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+      - PENTAGI_WORKER_HTTP_PROXY=${PENTAGI_WORKER_HTTP_PROXY:-}
       - EXTERNAL_SSL_CA_PATH=${EXTERNAL_SSL_CA_PATH:-}
       - EXTERNAL_SSL_INSECURE=${EXTERNAL_SSL_INSECURE:-}
       - HTTP_CLIENT_TIMEOUT=${HTTP_CLIENT_TIMEOUT:-}
       - SCRAPER_PUBLIC_URL=${SCRAPER_PUBLIC_URL:-}
-      - SCRAPER_PRIVATE_URL=${SCRAPER_PRIVATE_URL:-}
+      - SCRAPER_PRIVATE_URL=${SCRAPER_PRIVATE_URL:-https://${LOCAL_SCRAPER_USERNAME:-someuser}:${LOCAL_SCRAPER_PASSWORD:-somepass}@scraper/}
       - GRAPHITI_ENABLED=${GRAPHITI_ENABLED:-}
       - GRAPHITI_TIMEOUT=${GRAPHITI_TIMEOUT:-}
       - GRAPHITI_URL=${GRAPHITI_URL:-}
@@ -174,8 +181,8 @@ services:
       - ${PENTAGI_SSL_DIR:-pentagi-ssl}:/opt/pentagi/ssl
       - ${PENTAGI_OLLAMA_DIR:-pentagi-ollama}:/root/.ollama
       - ${PENTAGI_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
-      - ${PENTAGI_LLM_SERVER_CONFIG_PATH:-./example.custom.provider.yml}:/opt/pentagi/conf/custom.provider.yml
-      - ${PENTAGI_OLLAMA_SERVER_CONFIG_PATH:-./example.ollama.provider.yml}:/opt/pentagi/conf/ollama.provider.yml
+      # Directory bind (not single-file) — Docker Desktop on Windows often breaks file→file bind mounts.
+      - ${PENTAGI_HOST_PROVIDER_DIR:-./host-provider-conf}:/mnt/host-provider-conf:ro
       - ${PENTAGI_DOCKER_CERT_PATH:-./docker-ssl}:/opt/pentagi/docker/ssl
     user: root:root # while using docker.sock
     networks:
